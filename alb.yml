@@ -1,0 +1,44 @@
+Resources:
+  ApllicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties: 
+      IpAddressType: Ipv4
+      Name: ALB-Test
+      Scheme: Internet-facing
+      SecurityGroups: 
+        - sg-0e5eead2aa256eef9
+      Subnets: !Ref Subnets
+      Tags: 
+        - Tag
+      Type: ApplicationLoadBalancer
+  HTTPlistener:
+    Type: "AWS::ElasticLoadBalancingV2::Listener"
+    Properties:
+      DefaultActions:
+        - Type: "Forward"
+          TargetGroupArn: !Ref ALBTargetGroup
+      LoadBalancerArn: !Ref ApllicationLoadBalancer
+      Port: 80
+      Protocol: "HTTP"
+  ALBTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 3
+      Port: 80
+      Protocol: HTTP
+      UnhealthyThresholdCount: 5
+      VpcId: !Ref VpcId
+Parameters:
+  VpcId:
+    Type: 'AWS::EC2::VPC::Id'
+    Description: VpcId of your existing Virtual Private Cloud (VPC)
+    ConstraintDescription: must be the VPC Id of an existing Virtual Private Cloud.
+  Subnets:
+    Type: 'List<AWS::EC2::Subnet::Id>'
+    Description: The list of SubnetIds in your Virtual Private Cloud (VPC)
+    ConstraintDescription: >-
+      must be a list of at least two existing subnets associated with at least
+      two different availability zones. They should be residing in the selected
+      Virtual Private Cloud.
