@@ -1,0 +1,43 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      python: 3.7
+    commands:
+      - echo Entered the install phase...
+      - echo WebHook Event = $CODEBUILD_WEBHOOK_EVENT
+      - SOURCE_VERSION=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - export SAM_CLI_TELEMETRY=0
+      # In case aws calls are required.
+      - pip3 install --upgrade pip awscli aws-sam-cli cfn-lint yamllint
+      # Install cfn-nag for compliance checks
+      - gem install cfn-nag
+      # Retrieve compliance-related files for testing.
+      - aws s3 cp s3://med-av-daas-preprod-cicd/shared/compliance . --recursive
+      # docker version
+  pre_build:
+    commands:
+      # Concatenate individual cloudformation files into a single master template.yaml file.
+      # Courtesy of Team Lumberjacks, reference: https://github.build.ge.com/ddi-lumberjacks-unified-logging/sam-stream-router.
+      - python3 ./buildTemplate.py
+      # Lint and Validate the Template
+      # We recommend using 3 tools: yamllint, the CloudFormation Linter, cfn-lint, and sam validate.
+      # The tools give slightly different, yet relevant, linting results.
+      - yamllint template.yaml
+      # Validate using cfn-lint. Supress warnings. Runs compliance checks.
+      - cfn-lint --include-checks I --template template.yaml --verbose --ignore-checks W --append-rules cfn-lint/rules --override-spec cfn-lint/spec.json
+      # Validate SAM template.
+      - sam validate --template template.yaml
+      # Run CFN Nag. This will provide us with some out of the box security checks.
+      - cfn_nag --fail-on-warnings --output-format txt template.yaml
+  build:
+    commands:
+      # Looks for manifest (e.g. requirements.txt), builds the artifact and readies it for packaging/deployment.
+      - sam build
+      # Package and deploy artifact to S3 if PUSH event
+      - sam package --output-template-file ${PIPELINE_NAME}.yaml --s3-bucket $BUCKET --s3-prefix $S3_PREFIX
+      - cp ${PIPELINE_NAME}.yaml ${PIPELINE_NAME}-${SOURCE_VERSION}.yaml
+      - zip -r internal.zip ${PIPELINE_NAME}.yaml
+      - zip -r versioned.zip ${PIPELINE_NAME}-${SOURCE_VERSION}.yaml
+      - aws s3 cp versioned.zip s3://${BUCKET}/${PIPELINE_NAME}/ --sse aws:kms --sse-kms-key-id ${KEY_ID}
+      - aws s3 cp internal.zip s3://${BUCKET}/${PIPELINE_NAME}/ --sse aws:kms --sse-kms-key-id ${KEY_ID}
