@@ -2,20 +2,21 @@ Resources:
   ApllicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties: 
-      IpAddressType: Ipv4
+      IpAddressType: ipv4
       Name: ALB-Test
-      Scheme: Internet-facing
+      Scheme: internet-facing
       SecurityGroups: 
         - sg-0e5eead2aa256eef9
       Subnets: !Ref Subnets
       Tags: 
-        - Tag
-      Type: ApplicationLoadBalancer
+        - Key: Name
+          Value: myalb
+      Type: application
   HTTPlistener:
     Type: "AWS::ElasticLoadBalancingV2::Listener"
     Properties:
       DefaultActions:
-        - Type: "Forward"
+        - Type: forwards
           TargetGroupArn: !Ref ALBTargetGroup
       LoadBalancerArn: !Ref ApllicationLoadBalancer
       Port: 80
@@ -30,6 +31,10 @@ Resources:
       Protocol: HTTP
       UnhealthyThresholdCount: 5
       VpcId: !Ref VpcId
+      TargetType: instance
+      Targets:
+      - Id: i-0d1a114b10c6f417e
+
 Parameters:
   VpcId:
     Type: 'AWS::EC2::VPC::Id'
