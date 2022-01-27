@@ -6,7 +6,7 @@ Resources:
       Name: ALB-Test
       Scheme: internet-facing
       SecurityGroups: 
-        - sg-c67c8788 #taking from console
+        - sg-04e016236c77b83ba #taking from console
       Subnets: !Ref Subnets
       Tags: 
         - Key: Name
@@ -125,8 +125,8 @@ Resources:
       LoadBalancerArn: !Ref ApllicationLoadBalancer
       Port: 8888
       Protocol: HTTP
-#Httpd Target Group
-  ALBHttpHueTargetGroup:
+#Name Node Target Group
+  ALBHttpNameNodeTargetGroup:
     Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
     Properties:
       HealthCheckIntervalSeconds: 30
@@ -135,14 +135,14 @@ Resources:
       UnhealthyThresholdCount: 5
       Matcher:
         HttpCode: 200-399
-      Name: sample-emr-hue-tgt
-      Port: 19999
+      Name: sample-emr-NameNode-tgt
+      Port: 50070
       Protocol: HTTP
       VpcId: !Ref VpcId
       TargetType: instance
       Targets:
        - Id: !Ref EMRMasterEC2NodeId
-         Port: 19999
+         Port: 50070
       Tags:
         -
           Key: Name
@@ -151,15 +151,15 @@ Resources:
           Key: LoadBalancer
           Value: !Ref ApllicationLoadBalancer
 
-  #Httpd ALB listener
-  ALBHTTPHueListener:
+  #NameNode ALB listener
+  ALBHTTPNameNodeListener:
     Type: 'AWS::ElasticLoadBalancingV2::Listener'
     Properties:
       DefaultActions:
         - Type: forward
-          TargetGroupArn: !Ref ALBHttpHueTargetGroup
+          TargetGroupArn: !Ref ALBHttpNameNodeTargetGroup
       LoadBalancerArn: !Ref ApllicationLoadBalancer
-      Port: 80
+      Port: 50070
       Protocol: HTTP
     
 
