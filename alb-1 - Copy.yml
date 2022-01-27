@@ -1,0 +1,181 @@
+Resources:
+  ApllicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties: 
+      IpAddressType: ipv4
+      Name: ALB-Test
+      Scheme: internet-facing
+      SecurityGroups: 
+        - sg-c67c8788 #taking from console
+      Subnets: !Ref Subnets
+      Tags: 
+        - Key: Name
+          Value: myalb
+      Type: application
+
+  # YARN Resource Manager Target Group
+  ALBHttpYarnResourceManagerTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 3
+      UnhealthyThresholdCount: 5
+      Matcher:
+        HttpCode: 200-399
+      Name: sample-emr-yarn-rm-tgt
+      Port: 8088
+      Protocol: HTTP
+      VpcId: !Ref VpcId
+      TargetType: instance
+      Targets:
+       - Id: !Ref EMRMasterEC2NodeId
+         Port: 8088
+      Tags:
+        -
+          Key: Name
+          Value: sample-emr-yarn-rm-tgt
+        -
+          Key: LoadBalancer
+          Value: !Ref ApllicationLoadBalancer
+  # YARN Resource Manager Listener
+  ALBHTTPYarnResourceManagerListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ALBHttpYarnResourceManagerTargetGroup
+      LoadBalancerArn: !Ref ApllicationLoadBalancer
+      Port: 8088
+      Protocol: HTTP
+
+ 
+
+  #Tez Target Group
+  ALBHttpTezTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 3
+      UnhealthyThresholdCount: 5
+      HealthCheckPath: '/tez-ui'
+      Matcher:
+        HttpCode: 200-399
+      Name: sample-emr-tez-tgt
+      Port: 8080
+      Protocol: HTTP
+      VpcId: !Ref VpcId
+      TargetType: instance
+      Targets:
+       - Id: !Ref EMRMasterEC2NodeId
+         Port: 8080
+      Tags:
+        -
+          Key: Name
+          Value: sample-emr-tez-tgt
+        -
+          Key: LoadBalancer
+          Value: !Ref ApllicationLoadBalancer
+
+  # Tez listener
+  ALBHTTPTezListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ALBHttpTezTargetGroup
+      LoadBalancerArn: !Ref ApllicationLoadBalancer
+      Port: 8080
+      Protocol: HTTP
+
+  #Hue Target Group
+  ALBHttpHueTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 3
+      UnhealthyThresholdCount: 5
+      Matcher:
+        HttpCode: 200-399
+      Name: sample-emr-hue-tgt
+      Port: 8888
+      Protocol: HTTP
+      VpcId: !Ref VpcId
+      TargetType: instance
+      Targets:
+       - Id: !Ref EMRMasterEC2NodeId
+         Port: 8888
+      Tags:
+        -
+          Key: Name
+          Value: sample-emr-hue-tgt
+        -
+          Key: LoadBalancer
+          Value: !Ref ApllicationLoadBalancer
+
+  #Hue ALB listener
+  ALBHTTPHueListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ALBHttpHueTargetGroup
+      LoadBalancerArn: !Ref ApllicationLoadBalancer
+      Port: 8888
+      Protocol: HTTP
+#Httpd Target Group
+  ALBHttpHueTargetGroup:
+    Type: 'AWS::ElasticLoadBalancingV2::TargetGroup'
+    Properties:
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 3
+      UnhealthyThresholdCount: 5
+      Matcher:
+        HttpCode: 200-399
+      Name: sample-emr-hue-tgt
+      Port: 19999
+      Protocol: HTTP
+      VpcId: !Ref VpcId
+      TargetType: instance
+      Targets:
+       - Id: !Ref EMRMasterEC2NodeId
+         Port: 19999
+      Tags:
+        -
+          Key: Name
+          Value: sample-emr-hue-tgt
+        -
+          Key: LoadBalancer
+          Value: !Ref ApllicationLoadBalancer
+
+  #Httpd ALB listener
+  ALBHTTPHueListener:
+    Type: 'AWS::ElasticLoadBalancingV2::Listener'
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref ALBHttpHueTargetGroup
+      LoadBalancerArn: !Ref ApllicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
+    
+
+Parameters:
+  VpcId:
+    Type: 'AWS::EC2::VPC::Id'
+    Description: VpcId of your existing Virtual Private Cloud (VPC)
+    ConstraintDescription: must be the VPC Id of an existing Virtual Private Cloud.
+  EMRMasterEC2NodeId:
+    Type: 'AWS::EC2::Instance::Id'
+    Description: EMRMasterEC2NodeId of your existing Virtual Private Cloud.
+    ConstraintDescription: must be the EMRMasterEC2NodeId of an existing Virtual Private Cloud.
+  Subnets:
+    Type: 'List<AWS::EC2::Subnet::Id>'
+    Description: The list of SubnetIds in your Virtual Private Cloud (VPC)
+    ConstraintDescription: >-
+      must be a list of at least two existing subnets associated with at least
+      two different availability zones. They should be residing in the selected
+      Virtual Private Cloud.
